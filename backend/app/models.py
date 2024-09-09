@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
-from flask_sqlalchemy  import SQLALchemy
+from flask_sqlalchemy  import SQLAlchemy
 
-db = SQLALchemy()
+db = SQLAlchemy()
 
 class User(db.Model):
   __tablename__ = 'users'
@@ -26,9 +26,19 @@ class Community(db.Model):
   id = db.Column(db.Integer,primary_key=True)
   name = db.Column(db.String(150),nullable=False,unique=True)
   description = db.Column(db.Text,nullable=False)
-  icon = db.Column(db.String(200),nullable=True)
+  icon = db.Column(db.LargeBinary,nullable=True)
   rules = db.Column(db.Text,nullable=False)
   created_at = db.Column(db.DateTime,default=lambda:datetime.now(timezone.utc))
+  
+  def to_dict(self):
+    return{
+      'id':self.id,
+      'name':self.name,
+      'description':self.description,
+      'icon':self.icon,
+      'rules':self.rules,
+      'created_at':self.created_at.isoformat()
+    }
   
   # リレーション: コミュニティを作成したユーザー
   creator_id = db.Column(db.Integer,db.ForeignKey('users.id'),nullable=False)
