@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from flask_sqlalchemy  import SQLAlchemy
-
-db = SQLAlchemy()
+from app import db
 
 class User(db.Model):
   __tablename__ = 'users'
