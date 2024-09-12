@@ -3,23 +3,38 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
 from app.config import Config
-
+from flask_login import LoginManager
+from typing import Optional
 # 一旦インスタンスを作成
 db = SQLAlchemy()
 migrate = Migrate()
 
 def create_app():
   app = Flask(__name__)
-  CORS(app,resources={r"/*": {"origins": "*"}})
+  CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
   app.config.from_object(Config)
   
+  # ログインマネージャーの設定
+  login_manager = LoginManager()
+  login_manager.init_app(app)
+  
+  # ログインページの設定
+  login_manager.login_view = 'login'
+    
   db.init_app(app)
   migrate.init_app(app,db)
+  
+  from app.models import User
+  
+  # ユーザーローダーの定義
+  @login_manager.user_loader
+  def load_user(user_id:int) -> Optional[User]:
+    print(f"ユーザー{user_id}をロード中")
+    return User.query.get(int(user_id))# データベースからユーザーを取得
   
   # ブループリントを登録
   from app.routes import main
   app.register_blueprint(main)
   
-  from app.models import User,Community,Membership
   
   return app

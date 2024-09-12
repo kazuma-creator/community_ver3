@@ -1,13 +1,13 @@
 from datetime import datetime, timezone
-from flask_sqlalchemy  import SQLAlchemy
 from app import db
+from flask_login import UserMixin
 
-class User(db.Model):
+class User(UserMixin,db.Model):
   __tablename__ = 'users'
   
   id =db.Column(db.Integer,primary_key=True)
   username = db.Column(db.String(100),nullable=False,unique=True)
-  user_id = db.Column(db.String(100),unique=True,nullable=False)
+  user_id = db.Column(db.String(100),unique=True,nullable=True)
   password_hash = db.Column(db.String(128),nullable=False)
   created_at = db.Column(db.DateTime,default=lambda: datetime.now(timezone.utc))
   
@@ -31,12 +31,12 @@ class Community(db.Model):
   
   def to_dict(self):
     return{
-      'id':self.id,
-      'name':self.name,
-      'description':self.description,
-      'icon':self.icon,
-      'rules':self.rules,
-      'created_at':self.created_at.isoformat()
+      'id':self.id,# コミュニティのID
+      'name':self.name,# コミュニティの名前
+      'description':self.description,# コミュニティの説明
+      'icon':self.icon,# コミュニティのアイコン
+      'rules':self.rules,# コミュニティのルール
+      'created_at':self.created_at.isoformat()# コミュニティの作成日時
     }
   
   # リレーション: コミュニティを作成したユーザー
