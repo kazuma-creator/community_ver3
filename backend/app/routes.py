@@ -60,11 +60,13 @@ def login():
 def create_community():  
   print("リクエストを受け取りました")
   print(request.form)
-  
+  '''
   if not current_user.is_authenticated:# ログイン時：True　ログインしていない場合：False
+    # ログイン状態じゃない時はここに来るよ
     print(f"現在のユーザー:{current_user},認証状態:{current_user.is_authenticated}")
     return jsonify({'error':'ログインが必要です'}),401
-  
+  '''
+  # ログインされているとこっちに来るよ
   name = request.form.get('name')
   description = request.form.get('description')
   rules = request.form.get('rules')
