@@ -60,6 +60,7 @@ def login():
 def create_community():  
   print("リクエストを受け取りました")
   print(request.form)
+  print(current_user)
   '''
   if not current_user.is_authenticated:# ログイン時：True　ログインしていない場合：False
     # ログイン状態じゃない時はここに来るよ
@@ -103,7 +104,7 @@ def create_community():
     db.session.rollback()
     print(f'エラー発生:{e}')
     return jsonify({'error':str(e)})
-  
+
 @main.route('/api/get_communities',methods=['GET'])
 def get_communities():
   communities = Community.query.all() # データベースからすべてのコミュニティを取得
