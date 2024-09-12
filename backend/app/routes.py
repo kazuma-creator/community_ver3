@@ -60,7 +60,7 @@ def login():
 def create_community():  
   print("リクエストを受け取りました")
   print(request.form)
-  print(current_user)
+  print('今',current_user)
   '''
   if not current_user.is_authenticated:# ログイン時：True　ログインしていない場合：False
     # ログイン状態じゃない時はここに来るよ
