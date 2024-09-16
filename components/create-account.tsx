@@ -27,7 +27,6 @@ export function CreateAccount() {
     } else {
       setError("")
       console.log("Account creation attempted with:", { userName, userId, password })
-      // Here you would typically make an API call to create the account
     }
     // アカウント作成API呼び出し
     try{

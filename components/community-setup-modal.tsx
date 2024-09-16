@@ -15,7 +15,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { AlertCircle } from 'lucide-react'
-import { fetchInternalImage } from 'next/dist/server/image-optimizer'
+
+function getCookie(name: string):string | null {
+  const value = `; ${document.cookie}`; // document.cookieからすべてのクッキーを取得
+  const parts = value.split(`; ${name}=`);// 指定したクッキー名でクッキーを分割
+  if (parts.length === 2){
+    return parts.pop()?.split(';').shift() || null;// クッキー名に対応する値を返す
+  } 
+  return null;
+}
+
 
 export function CommunitySetupModal() {
   const [open, setOpen] = useState(false)
@@ -25,12 +34,14 @@ export function CommunitySetupModal() {
   const [rules, setRules] = useState('')
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
   const [userId,setUserId] = useState<string | null>(null)
+  const [csrfToken,setCsrfToken] = useState<string | null>(null)
+  const [generalError, setGeneralError] = useState<string | null>(null) 
 
-  // モーダルが開いた時に現在ログインしているユーザーIDを取得
+  // コンポーネントが開いたときの処理
   useEffect(()=>{
     const fetchUserId = async()=>{
       try{
-        const response = await fetch('http://127.0.0.1:5000/check_login',{
+        const response = await fetch('http://localhost:5000/check_login',{
           method:'GET',
           credentials: 'include',
         });
@@ -42,9 +53,26 @@ export function CommunitySetupModal() {
         console.error('ユーザーIDの取得に失敗しました',error);
       }
     };
-      fetchUserId(); // モーダルが開いたときにユーザーIDを取得
-  },[]);
 
+    const fetchCsrfToken = async () => {
+      try{
+        const response = await fetch('http://localhost:5000/get_csrf_token',{
+          method:'GET',
+          credentials:'include',
+        });
+        const data = await response.json();
+        if(data.csrf_token){
+          setCsrfToken(data.csrf_token);// CSRFトークンを保存
+          console.log("CSRFトークンを保存しました")
+        }
+      }catch(error){
+        console.error('CSRFトークンの取得に失敗しました',error);
+      }
+    };
+      fetchCsrfToken();
+      fetchUserId(); // モーダルが開いたときにユーザーIDを取得
+
+  },[]);
 
 
   
@@ -52,6 +80,7 @@ export function CommunitySetupModal() {
   // create communityをクリックした際の処理
   const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault()
+    setGeneralError(null);
     const newErrors: { [key: string]: string } = {}
     // 入力されていない際に表示する警告文
     if (!name.trim()) newErrors.name = 'Community name is required'
@@ -73,6 +102,15 @@ export function CommunitySetupModal() {
       formData.append('icon',icon);
     }
 
+    if (!csrfToken) {
+      console.error('CSRFトークンが存在しません');
+      return;
+    }
+
+    const headers: HeadersInit = {
+      'X-CSRFToken': csrfToken || '', // useState から取得した CSRF トークンを使用
+    };
+
     // デバッグ用に FormData の内容を確認
     for (let [key,value] of formData.entries()){
       console.log(`${key}:${value}`)
@@ -80,10 +118,11 @@ export function CommunitySetupModal() {
 
     // バックエンドにデータを送信
     try{
-      const response = await fetch('http://127.0.0.1:5000/api/create_communities',{
+      const response = await fetch('http://localhost:5000/api/create_communities',{
         method: 'POST',
         body: formData,
         credentials: 'include',
+        headers,
       });
       console.log('responseの内容:',response);
       // エラー処理
@@ -94,10 +133,15 @@ export function CommunitySetupModal() {
       setOpen(false);
 
       // データをリフレッシュしてホーム画面に表示
-      //window.location.reload();
+      window.location.reload();
 
     }catch(error){
       console.error('コミュニティの作成に失敗しました',error);
+      if(error instanceof Error){
+        setGeneralError(error.message);
+      }else{
+        setGeneralError('予期せぬエラー');
+      }
     }
 
     // Here you would typically send the data to your backend

@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import {useRouter} from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -13,27 +14,72 @@ interface Community{
   description:string;
   icon?:string;
 }
+interface Notification {
+  community_id: number;
+  community_name: string;
+  content: string;
+  author: string; // 修正: author プロパティを追加
+  timestamp: string;
+}
+
 
 
 export function HomePage() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [communities,setCommunities] = useState<Community[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]); 
+  const [isNotificationsVisible, setIsNotificationsVisible] = useState(false);
+  const [isMyCommunities,setIsMyCommunities] = useState(false);
+  const router = useRouter();
 
+  // コミュニティデータを取得
+  const fetchCommunities = async () => {
+    try{
+      const response = await fetch('http://localhost:5000/api/get_communities');
+      const data = await response.json();
+      console.log('コミュニティデータ:',data);
+      setCommunities(data);
+    }catch(error){
+      // エラー処理
+      console.error('コミュニティの取得に失敗しました',error);
+    }
+  };
+  // 通知データを取得
+  const fetchNotifications = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/notifications', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      setNotifications(data); // 通知データを状態に保存
+    } catch (error) {
+      console.error('通知の取得に失敗しました', error);
+    }
+  };
+
+  const fetchMyCommunities = async () => {
+    try{
+      const response = await fetch('http://localhost:5000/api/my_communities',{
+        method:'GET',
+        credentials:'include',
+      });
+      const data = await response.json();
+      console.log('自分のコミュニティデータ:',data);
+      setCommunities(data);
+    }catch(error){
+      console.error('自分のコミュニティの取得に失敗しました',error);
+    }
+  };
+  
   useEffect(()=>{
-    // コミュニティデータを取得
-    const fetchCommunities = async () => {
-      try{
-        const response = await fetch('http://localhost:5000/api/get_communities');
-        const data = await response.json();
-        console.log('コミュニティデータ:',data);
-        setCommunities(data);
-      }catch(error){
-        // エラー処理
-        console.error('コミュニティの取得に失敗しました',error);
-      }
-    };
     fetchCommunities();
   },[]);
+
+  // コミュニティがクリックされたときに詳細ページに遷移
+  const handleCommunityClick =(id: number) =>{
+    router.push(`/community/${id}`)
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -74,15 +120,27 @@ export function HomePage() {
               {isSidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
               {!isSidebarCollapsed && <span className="ml-2">Collapse</span>}
             </Button>
-            <Button variant="ghost" className="w-full justify-start">
+            <Button variant="ghost" className="w-full justify-start" 
+              onClick={() => {
+                fetchCommunities(); //全てのコミュニティを表示
+                setIsMyCommunities(false);
+              }}
+            >
               <Home className="h-4 w-4" />
               {!isSidebarCollapsed && <span className="ml-2">Home</span>}
             </Button>
-            <Button variant="ghost" className="w-full justify-start">
+            <Button variant="ghost" className="w-full justify-start"
+              onClick={()=>{
+                fetchMyCommunities(); // 自分のコミュニティを表示
+                setIsMyCommunities(true);
+              }}>
               <Users className="h-4 w-4" />
               {!isSidebarCollapsed && <span className="ml-2">My Communities</span>}
             </Button>
-            <Button variant="ghost" className="w-full justify-start">
+            <Button variant="ghost" className="w-full justify-start"
+              onClick={()=>{
+                fetchNotifications()
+              }}>
               <Bell className="h-4 w-4" />
               {!isSidebarCollapsed && <span className="ml-2">Notifications</span>}
             </Button>
@@ -94,10 +152,33 @@ export function HomePage() {
         </aside>
         <main className="flex-1 p-6">
           <h2 className="text-2xl font-bold mb-6">Communities</h2>
+           {/* 通知を表示するセクション */}
+           {isNotificationsVisible && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Notifications</h2>
+              <div className="space-y-4">
+                {notifications.length > 0 ? (
+                  notifications.map((notification, index) => (
+                    <div key={index} className="bg-white p-4 rounded-lg shadow">
+                      <p><strong>{notification.author}</strong> posted in <strong>{notification.community_name}</strong></p>
+                      <p>{notification.content}</p>
+                      <p className="text-xs text-gray-500">{new Date(notification.timestamp).toLocaleString()}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p>No new notifications</p>
+                )}
+              </div>
+            </div>
+          )}
           {/* ここに取得したデータを表示*/}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {communities.map((community) => (
-              <Card key={community.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+              <Card 
+                key={community.id} 
+                className="overflow-hidden hover:shadow-lg transition-shadow duration-300"
+                onClick={() => handleCommunityClick (community.id)} // クリックで詳細ページに遷移
+                >
                 <CardContent className="p-0">
                   <div className="flex items-center p-4">
                     <img
